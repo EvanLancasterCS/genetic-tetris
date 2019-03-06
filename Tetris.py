@@ -1,4 +1,4 @@
-import pygame, sys, math, random, NrNt
+import pygame, sys, math, random, NrNt, numpy
 from pygame.locals import *
 from enum import Enum
 random.seed(250)
@@ -49,6 +49,7 @@ CONST_GameDimX = 10
 CONST_GameDimY = 20
 CONST_NumFuture = 2
 TickTime = 0.5
+randomStateQueue = []
 
 class Block:
     gridPos = None
@@ -208,6 +209,7 @@ class TetrisGameState:
     linesComplete = 0
     score = 0
     level = 1
+    currentRandomQueue = 0
 
     def __init__(self, drawOrigin, size):
         self.drawOrigin = drawOrigin
@@ -216,6 +218,7 @@ class TetrisGameState:
         self.outlineBlocks = []
         self.currentQueue = []
         self.currentQueueBlocks = []
+        self.currentRandomQueue = 0
         self.newShape()
         self.initializeOutline()
         self.addToQueue()
@@ -402,17 +405,22 @@ class TetrisGameState:
         for i in range(CONST_NumFuture):
             shape = self.currentQueue[i]
             self.currentQueueBlocks.append(Shape(shape, (queuePos[0], queuePos[1] - (i*3)), self.drawOrigin, self))
-            
+        
     
     #Adds a random order of 2*shapelist number of shapes to queue
     def addToQueue(self):
         shapeList = []
+        if self.currentRandomQueue >= len(randomStateQueue):
+            randomStateQueue.append(random.getstate())
+        else:
+            random.setstate(randomStateQueue[self.currentRandomQueue])
         for s in TileType:
             shapeList.append(s)
             shapeList.append(s)
         random.shuffle(shapeList)
         for s in shapeList:
             self.currentQueue.append(s)
+        self.currentRandomQueue += 1
             
     def tick(self):
         if self.currentShape.tick() == False:
@@ -512,12 +520,12 @@ moveTicker = 0
 pygame.font.init()
 myFont = pygame.font.SysFont('Comic Sans Ms', 20)
 
-CONST_PopulationSize = 50
-CONST_ChampionSize = 15
+CONST_PopulationSize = 100
+CONST_ChampionSize = 20
 currentGen = 0
 highestGameScore = 0
-bestGenAverage = -100
-pastGenAverage = 0
+bestGenAverage = -1000
+pastGenAverage = -1000
 #bestPlayer = None
 #secondBest = None
 bestPlayers = []
@@ -569,8 +577,10 @@ def buildPlayers():
     global currentGen
     global pastGenAverage
     global bestGenAverage
+    global randomStateQueue
     generationAverage = 0
     currentPlayers = []
+    randomStateQueue = []
     if len(bestPlayers) == 0:
         for i in range(CONST_ChampionSize):
             bestPlayers.append(Player())
@@ -583,8 +593,8 @@ def buildPlayers():
     #currentPlayers.append(secondBest)
     
     for i in range(CONST_PopulationSize-CONST_ChampionSize):
-        ch1 = int(random.uniform(0, CONST_ChampionSize))
-        ch2 = int(random.uniform(0, CONST_ChampionSize))
+        ch1 = int(numpy.random.uniform(0, CONST_ChampionSize))
+        ch2 = int(numpy.random.uniform(0, CONST_ChampionSize))
         newP = Player(False)
         newP.myNetwork = bestPlayers[ch1].myNetwork.DeepCopy()
         newP.myNetwork.Breed(bestPlayers[ch2].myNetwork)
@@ -632,7 +642,6 @@ def tickPlayers():
 
 #while bestPlayer.myGame.score == 0:
 #    tickPlayers()
-
 while True:
     display.fill((0,0,0))
     numAlive = tickPlayers()
@@ -685,7 +694,6 @@ while True:
     display.blit(scoreText,(0,0))
     
    '''
-    
     for player in currentPlayers:
         if player.dead == False:
             player.myGame.draw()

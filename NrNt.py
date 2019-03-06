@@ -1,5 +1,5 @@
-import random, math, pygame
-CONST_mutationRate = 0.2
+import random, math, pygame, numpy
+CONST_mutationRate = .2
 CONST_numMutations = 90
 #random.seed(1)
 
@@ -27,7 +27,7 @@ class NetNode:
     def Breed(self, other):
         weights = self.weights.copy()
         for i in range(len(weights)):
-            if random.uniform(0,1) > 0.5:
+            if numpy.random.uniform(0.0,1.0) > 0.5:
                 weights[i] = other.weights[i]
         return weights
     
@@ -43,10 +43,10 @@ class NetNode:
     # Randomly chooses a weight and randomly adjusts it.
     def Mutate(self):
         # Positive or negative mutation
-        m = random.randrange(2)
-        wC = random.randrange(len(self.weights))
+        m = numpy.random.uniform(-1, 1)
+        wC = int(numpy.random.uniform(0,len(self.weights)))
         if m == 0:
-            m = -1
+            m = 1
         self.weights[wC] += m * CONST_mutationRate
 
 # A layer of NetNodes
@@ -68,7 +68,7 @@ class NetLayer:
     
     # Mutates a random node
     def Mutate(self):
-        n = random.randrange(len(self.nodes))
+        n = int(numpy.random.uniform(0,len(self.nodes)))
         self.nodes[n].Mutate()
     
     # Sets all of nodes to appropriate total
@@ -152,7 +152,7 @@ class NNetwork:
     # Randomly mutates a layer
     def Mutate(self):
         for i in range(CONST_numMutations):
-            n = random.randrange(len(self.layers)-1)
+            n = int(numpy.random.uniform(0, len(self.layers)-1))
             self.layers[n].Mutate()
     
     # Calculates all of network based on inputs, stores outputs
